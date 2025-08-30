@@ -93,6 +93,29 @@ router.post('/logout', adminAuth, (req, res) => {
   }
 });
 
+// @route   GET /api/admin/auth/verify
+// @desc    Verify admin token
+// @access  Private
+router.get('/verify', adminAuth, (req, res) => {
+  try {
+    res.json({
+      success: true,
+      admin: {
+        id: req.admin._id,
+        username: req.admin.username,
+        role: req.admin.role,
+        createdAt: req.admin.createdAt
+      }
+    });
+  } catch (error) {
+    console.error('Admin token verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during token verification'
+    });
+  }
+});
+
 // @route   GET /api/admin/auth/me
 // @desc    Get current admin user
 // @access  Private
