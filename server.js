@@ -7,8 +7,24 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+  'http://localhost:5173', // Local admin panel
+  'https://motour-admin-panel.vercel.app', // Production admin panel
+  'http://localhost:3000', // Local client
+  'exp://192.168.1.230:8081', // Expo development
+];
+
 app.use(cors({
-  origin: process.env.ADMIN_ORIGIN || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
