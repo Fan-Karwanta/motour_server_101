@@ -22,12 +22,12 @@ app.use('/api/destinations', require('./routes/destinations'));
 app.use('/api/saved-destinations', require('./routes/savedDestinations'));
 
 // Admin Routes
-app.use('/api/admin/auth', require('./routes/admin/auth'));
-app.use('/api/admin/users', require('./routes/admin/users'));
-app.use('/api/admin/destinations', require('./routes/admin/destinations'));
-app.use('/api/admin/ratings', require('./routes/admin/ratings'));
-app.use('/api/admin/metrics', require('./routes/admin/metrics'));
-app.use('/api/admin/uploads', require('./routes/admin/uploads'));
+app.use('/admin/auth', require('./routes/admin/auth'));
+app.use('/admin/users', require('./routes/admin/users'));
+app.use('/admin/destinations', require('./routes/admin/destinations'));
+app.use('/admin/ratings', require('./routes/admin/ratings'));
+app.use('/admin/metrics', require('./routes/admin/metrics'));
+app.use('/admin/uploads', require('./routes/admin/uploads'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
