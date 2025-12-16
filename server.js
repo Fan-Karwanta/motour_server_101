@@ -36,6 +36,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/profile', require('./routes/profile'));
 app.use('/api/destinations', require('./routes/destinations'));
 app.use('/api/saved-destinations', require('./routes/savedDestinations'));
+app.use('/api/vehicles', require('./routes/vehicle'));
 
 // Admin Routes
 app.use('/admin/auth', require('./routes/admin/auth'));
@@ -73,7 +74,8 @@ connectDB();
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Motour API server running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📱 Mobile access: http://192.168.1.8:${PORT}/api/health`);
 });
