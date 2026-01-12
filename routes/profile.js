@@ -2,6 +2,8 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { body, validationResult } = require('express-validator');
 const User = require('../models/User');
+const Vehicle = require('../models/Vehicle');
+const Rating = require('../models/Rating');
 const authenticateToken = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -43,6 +45,12 @@ router.get('/', authenticateToken, async (req, res) => {
       month: 'long'
     });
 
+    // Get vehicles count for this user
+    const vehiclesCount = await Vehicle.countDocuments({ userId: req.user._id });
+
+    // Get reviews/ratings count for this user
+    const reviewsCount = await Rating.countDocuments({ userId: req.user._id });
+
     res.json({
       success: true,
       user: {
@@ -52,9 +60,8 @@ router.get('/', authenticateToken, async (req, res) => {
         phone: user.phone || '',
         profileImage: user.profileImage || '',
         location: user.location || 'Philippines',
-        tripsCompleted: user.tripsCompleted || 0,
-        favoriteDestinations: user.favoriteDestinations || 0,
-        totalDistance: user.totalDistance || '0 km',
+        vehiclesCount: vehiclesCount,
+        reviewsCount: reviewsCount,
         memberSince: memberSince
       }
     });
