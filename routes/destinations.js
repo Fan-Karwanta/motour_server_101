@@ -1,8 +1,27 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
 const auth = require('../middleware/auth');
 const Destination = require('../models/Destination');
 const Rating = require('../models/Rating');
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB max for videos
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images and videos
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image and video files are allowed'), false);
+    }
+  }
+});
 
 // @route   POST /api/destinations
 // @desc    Create a new destination
@@ -177,7 +196,7 @@ router.get('/:id', async (req, res) => {
 // @access  Private
 router.post('/:id/ratings', auth, async (req, res) => {
   try {
-    const { rating, comment } = req.body;
+    const { rating, comment, media } = req.body;
     
     // Check if destination exists
     const destination = await Destination.findById(req.params.id);
@@ -185,6 +204,14 @@ router.post('/:id/ratings', auth, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'Destination not found'
+      });
+    }
+
+    // Validate media array (max 3 files)
+    if (media && media.length > 3) {
+      return res.status(400).json({
+        success: false,
+        error: 'Maximum 3 media files allowed per review'
       });
     }
 
@@ -198,10 +225,16 @@ router.post('/:id/ratings', auth, async (req, res) => {
       // Update existing rating
       existingRating.rating = rating;
       existingRating.comment = comment || '';
+      if (media) {
+        existingRating.media = media;
+      }
       await existingRating.save();
       
       // Recalculate average rating
       await Rating.calculateAverageRating(req.params.id);
+      
+      // Populate user data
+      await existingRating.populate('userId', 'email name');
       
       return res.status(200).json({
         success: true,
@@ -214,7 +247,8 @@ router.post('/:id/ratings', auth, async (req, res) => {
         destinationId: req.params.id,
         userId: req.user.id,
         rating,
-        comment: comment || ''
+        comment: comment || '',
+        media: media || []
       });
 
       await newRating.save();
@@ -264,6 +298,72 @@ router.get('/:id/ratings', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server Error'
+    });
+  }
+});
+
+// @route   POST /api/destinations/upload-media
+// @desc    Upload media (image/video) for reviews
+// @access  Private
+router.post('/upload-media', auth, upload.single('media'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No media file provided'
+      });
+    }
+
+    const isVideo = req.file.mimetype.startsWith('video/');
+    const resourceType = isVideo ? 'video' : 'image';
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const uploadOptions = {
+        folder: 'motour/reviews',
+        resource_type: resourceType,
+      };
+
+      // Add transformations for images only
+      if (!isVideo) {
+        uploadOptions.transformation = [
+          { width: 800, height: 800, crop: 'limit' },
+          { quality: 'auto' }
+        ];
+      }
+
+      cloudinary.uploader.upload_stream(
+        uploadOptions,
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
+    });
+
+    // Generate thumbnail URL for videos
+    let thumbnail = null;
+    if (isVideo) {
+      thumbnail = result.secure_url
+        .replace('/video/upload/', '/video/upload/so_0,w_400,h_300,c_fill/')
+        .replace(/\.[^.]+$/, '.jpg');
+    }
+
+    res.json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        publicId: result.public_id,
+        type: isVideo ? 'video' : 'image',
+        thumbnail
+      }
+    });
+
+  } catch (error) {
+    console.error('Media upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to upload media'
     });
   }
 });

@@ -26,6 +26,24 @@ const ratingSchema = new mongoose.Schema({
     trim: true,
     maxlength: [500, 'Comment cannot exceed 500 characters']
   },
+  media: [{
+    url: {
+      type: String,
+      required: true
+    },
+    publicId: {
+      type: String,
+      required: true
+    },
+    type: {
+      type: String,
+      enum: ['image', 'video'],
+      required: true
+    },
+    thumbnail: {
+      type: String // For videos, store thumbnail URL
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
